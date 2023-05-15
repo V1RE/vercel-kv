@@ -1,18 +1,45 @@
-import { kv } from '@vercel/kv';
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { PlusIcon, RotateCcwIcon } from 'lucide-react';
+import { experimental_useOptimistic as useOptimistic } from 'react';
 import { cn } from 'tailwind-variants';
+import { incrementCounter, resetCounter } from './actions';
 
-async function getCounter() {
-  const count = await kv.get('count');
+export function Counter({ className, count }: { className?: string; count: number }) {
+  const [optimisticCount, setOptimisticCount] = useOptimistic(
+    { count, loading: false },
+    (_, newCount: number) => ({ count: newCount, loading: true }),
+  );
 
-  if (typeof count === 'number') return count;
+  return (
+    <>
+      <Button
+        variant="destructive"
+        onClick={() => {
+          setOptimisticCount(optimisticCount.count + 1);
+          void incrementCounter();
+        }}>
+        <PlusIcon size={16} />
+      </Button>
 
-  await kv.set('count', 0);
+      <Button
+        variant="destructive"
+        onClick={() => {
+          setOptimisticCount(0);
+          void resetCounter();
+        }}>
+        <RotateCcwIcon size={16} />
+      </Button>
 
-  return 0;
-}
-
-export async function Counter({ className }: { className?: string }) {
-  const count = await getCounter();
-
-  return <div className={cn('text-xl', className)()}>{count}</div>;
+      <div
+        className={cn(
+          'bg-green-800 text-xl',
+          className,
+          optimisticCount.loading ? 'animate-pulse' : undefined,
+        )()}>
+        {optimisticCount.count}
+      </div>
+    </>
+  );
 }
